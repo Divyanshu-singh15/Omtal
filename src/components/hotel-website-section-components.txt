@@ -1,0 +1,310 @@
+// File: src/components/sections/Hero.jsx
+import { useEffect, useState, useRef } from 'react';
+import Button from '../common/Button';
+
+const Hero = ({ 
+  title, 
+  subtitle, 
+  buttonText, 
+  buttonLink, 
+  videoSrc, 
+  fallbackImageSrc,
+  height = 'h-screen',
+  overlay = true,
+}) => {
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const handleVideoLoad = () => {
+      setIsVideoLoaded(true);
+    };
+
+    if (videoRef.current) {
+      if (videoRef.current.readyState >= 3) {
+        // If video is already loaded
+        setIsVideoLoaded(true);
+      } else {
+        // Wait for video to load
+        videoRef.current.addEventListener('canplay', handleVideoLoad);
+      }
+    }
+
+    return () => {
+      if (videoRef.current) {
+        videoRef.current.removeEventListener('canplay', handleVideoLoad);
+      }
+    };
+  }, []);
+
+  return (
+    <div className={`relative ${height} overflow-hidden`}>
+      {/* Fallback image (shown until video loads) */}
+      {fallbackImageSrc && (
+        <div 
+          className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ${
+            videoSrc && isVideoLoaded ? 'opacity-0' : 'opacity-100'
+          }`}
+          style={{ backgroundImage: `url(${fallbackImageSrc})` }}
+        />
+      )}
+      
+      {/* Background video */}
+      {videoSrc && (
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
+            isVideoLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          <source src={videoSrc} type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+      )}
+      
+      {/* Dark overlay */}
+      {overlay && (
+        <div className="absolute inset-0 bg-black bg-opacity-40" />
+      )}
+      
+      {/* Content */}
+      <div className="absolute inset-0 flex items-center justify-center px-4">
+        <div className="text-center text-white max-w-4xl">
+          <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="text-xl md:text-2xl mb-8 text-white/90">
+              {subtitle}
+            </p>
+          )}
+          {buttonText && buttonLink && (
+            <Button 
+              href={buttonLink} 
+              variant="primary" 
+              size="lg"
+              className="backdrop-blur-sm"
+            >
+              {buttonText}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Hero;
+
+// File: src/components/sections/BookingBar.jsx
+import { useState } from 'react';
+import { DateRangePicker } from 'react-date-range';
+import 'react-date-range/dist/styles.css';
+import 'react-date-range/dist/theme/default.css';
+import Button from '../common/Button';
+
+const BookingBar = () => {
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [dateRange, setDateRange] = useState({
+    startDate: new Date(),
+    endDate: new Date(new Date().setDate(new Date().getDate() + 3)),
+    key: 'selection'
+  });
+  const [guests, setGuests] = useState(2);
+  const [rooms, setRooms] = useState(1);
+
+  const handleDateSelect = (ranges) => {
+    setDateRange(ranges.selection);
+  };
+
+  const formatDate = (date) => {
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const handleGuestsChange = (e) => {
+    setGuests(Math.max(1, parseInt(e.target.value) || 1));
+  };
+
+  const handleRoomsChange = (e) => {
+    setRooms(Math.max(1, parseInt(e.target.value) || 1));
+  };
+
+  return (
+    <div className="relative bg-white shadow-lg rounded-lg mx-4 -mt-20 z-40">
+      <div className="container px-0">
+        <div className="flex flex-col md:flex-row items-center justify-between p-6">
+          <div className="w-full md:w-auto mb-4 md:mb-0 relative">
+            <div 
+              className="flex items-center cursor-pointer"
+              onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
+            >
+              <div className="mr-4 text-primary text-xl">📅</div>
+              <div>
+                <div className="text-sm text-neutral-500">Check-in & Check-out</div>
+                <div className="font-medium">
+                  {formatDate(dateRange.startDate)} - {formatDate(dateRange.endDate)}
+                </div>
+              </div>
+            </div>
+            
+            {isDatePickerOpen && (
+              <div className="absolute mt-2 shadow-xl z-50 bg-white rounded-lg">
+                <DateRangePicker
+                  ranges={[dateRange]}
+                  onChange={handleDateSelect}
+                  minDate={new Date()}
+                  direction="horizontal"
+                />
+              </div>
+            )}
+          </div>
+          
+          <div className="w-full md:w-auto mb-4 md:mb-0 flex space-x-6">
+            <div className="flex items-center">
+              <div className="mr-4 text-primary text-xl">👥</div>
+              <div>
+                <div className="text-sm text-neutral-500">Guests</div>
+                <select 
+                  value={guests}
+                  onChange={handleGuestsChange}
+                  className="font-medium bg-transparent appearance-none focus:outline-none border-none p-0"
+                >
+                  {[1, 2, 3, 4, 5, 6].map(num => (
+                    <option key={num} value={num}>{num} Guest{num !== 1 ? 's' : ''}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex items-center">
+              <div className="mr-4 text-primary text-xl">🏨</div>
+              <div>
+                <div className="text-sm text-neutral-500">Rooms</div>
+                <select 
+                  value={rooms}
+                  onChange={handleRoomsChange}
+                  className="font-medium bg-transparent appearance-none focus:outline-none border-none p-0"
+                >
+                  {[1, 2, 3, 4, 5].map(num => (
+                    <option key={num} value={num}>{num} Room{num !== 1 ? 's' : ''}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <Button 
+            variant="primary" 
+            size="md"
+            className="w-full md:w-auto"
+          >
+            Check Availability
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BookingBar;
+
+// File: src/components/sections/RoomCard.jsx
+import { Link } from 'react-router-dom';
+import Card from '../common/Card';
+import Button from '../common/Button';
+
+const RoomCard = ({ room }) => {
+  const { id, name, type, size, capacity, price, image, amenities } = room;
+
+  return (
+    <Card
+      image={image}
+      className="h-full transition-transform duration-300 hover:-translate-y-2"
+      imageClassName="h-64"
+      contentClassName="flex flex-col"
+    >
+      <div className="flex-grow">
+        <div className="flex justify-between items-start mb-3">
+          <h3 className="font-heading text-xl">{name}</h3>
+          <div className="text-primary font-bold">${price}<span className="text-sm text-neutral-500 font-normal">/night</span></div>
+        </div>
+        
+        <div className="text-sm text-neutral-500 mb-4">{type}</div>
+        
+        <div className="flex flex-wrap gap-y-2 mb-4">
+          <div className="w-1/2 flex items-center text-sm">
+            <span className="mr-2">🛏️</span> {size}
+          </div>
+          <div className="w-1/2 flex items-center text-sm">
+            <span className="mr-2">👥</span> Up to {capacity} guests
+          </div>
+          {amenities.slice(0, 2).map((amenity, index) => (
+            <div key={index} className="w-1/2 flex items-center text-sm">
+              <span className="mr-2">✓</span> {amenity}
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      <div className="flex justify-between items-center mt-auto pt-4 border-t border-neutral-200">
+        <Link to={`/rooms/${id}`} className="text-primary hover:underline text-sm font-medium">
+          View Details
+        </Link>
+        <Button href={`/booking?room=${id}`} variant="outline" size="sm">
+          Book Now
+        </Button>
+      </div>
+    </Card>
+  );
+};
+
+export default RoomCard;
+
+// File: src/components/sections/TestimonialCard.jsx
+const TestimonialCard = ({ testimonial }) => {
+  const { name, location, rating, comment, avatar, date } = testimonial;
+  
+  return (
+    <div className="bg-white rounded-lg shadow-md p-8">
+      <div className="flex items-center mb-4">
+        <div className="mr-4">
+          <img
+            src={avatar || '/images/default-avatar.jpg'}
+            alt={name}
+            className="w-16 h-16 rounded-full object-cover"
+          />
+        </div>
+        <div>
+          <h4 className="font-heading text-lg font-medium">{name}</h4>
+          <p className="text-neutral-500 text-sm">{location}</p>
+        </div>
+      </div>
+      
+      <div className="mb-4 flex items-center">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <span 
+            key={index} 
+            className={`text-lg ${index < rating ? 'text-yellow-400' : 'text-neutral-300'}`}
+          >
+            ★
+          </span>
+        ))}
+        <span className="ml-2 text-sm text-neutral-500">{date}</span>
+      </div>
+      
+      <blockquote className="text-lg italic text-neutral-700">
+        "{comment}"
+      </blockquote>
+    </div>
+  );
+};
+
+export default TestimonialCard;
